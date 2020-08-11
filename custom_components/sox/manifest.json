@@ -1,8 +1,7 @@
 {
   "domain": "sox",
   "name": "SoX",
-  "documentation": "https://sourceforge.net/projects/sox/",
-  "requirements": [],
-  "dependencies": [],
-  "codeowners": []
+  "documentation": "https://github.com/definitio/ha-sox/blob/master/README.md",
+  "issue_tracker": "https://github.com/definitio/ha-sox/issues",
+  "codeowners": ["@definitio"]
 }
