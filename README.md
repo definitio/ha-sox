@@ -1,5 +1,7 @@
 # SoX component for Home Assistant
 
+[![hacs_badge](https://img.shields.io/badge/HACS-Default-orange.svg)](https://github.com/custom-components/hacs)
+
 A Home Assistant integration to turn your vacuum into an audio player.
 
 1. Build and install firmware for your Xiaomi (Roborock) vacuum - [build firmware](https://github.com/zvldz/vacuum) with `--enable-sound-server` option.
