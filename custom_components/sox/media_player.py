@@ -81,6 +81,7 @@ class SoXDevice(MediaPlayerEntity):
             sock = socket(AF_INET, SOCK_STREAM)
             sock.connect((self._host, self._port))
             self._play = True
+            self.schedule_update_ha_state()
             sock.sendall("{};".format(media_id).encode())
             sock.close()
             sleep(10)
