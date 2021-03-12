@@ -65,6 +65,11 @@ class SoXDevice(MediaPlayerEntity):
         self._volume = None
 
     @property
+    def available(self):
+        """Return true if MPD is available and connected."""
+        return self._is_connected
+
+    @property
     def name(self):
         """Return the name of the device."""
         return self._name
@@ -130,6 +135,7 @@ class SoXDevice(MediaPlayerEntity):
                 sock.connect((self._host, self._port))
                 sock.sendall(f"{media_id};{self._volume};".encode())
                 output = sock.recv(256).decode('utf-8').rstrip()
+                self._is_connected = True
                 if '=' in output and ';' in output:
                     output_parsed = dict(x.split('=') for x in output.split(';'))  # type: ignore
                     if 'volume' in output_parsed.keys():
@@ -138,6 +144,7 @@ class SoXDevice(MediaPlayerEntity):
 
         except (socket.error, socket.timeout) as err:
             _LOGGER.debug("SoX connection error: %s", err)
+            self._is_connected = False
 
     def volume_up(self):
         """Service to send the MPD the command for volume up."""
