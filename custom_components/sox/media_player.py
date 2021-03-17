@@ -58,7 +58,7 @@ class SoXDevice(MediaPlayerEntity):
         self._port = port
         self._name = name
 
-        self._is_connected = False
+        self._is_connected = None
         self._is_playing = False
         self._muted = False
         self._muted_volume = None
@@ -144,7 +144,8 @@ class SoXDevice(MediaPlayerEntity):
 
         except (socket.error, socket.timeout) as err:
             _LOGGER.debug("SoX connection error: %s", err)
-            self._is_connected = False
+            if self._volume is not None:  # For compatibility with old sound server
+                self._is_connected = False
 
     def volume_up(self):
         """Service to send the MPD the command for volume up."""
@@ -164,4 +165,5 @@ class SoXDevice(MediaPlayerEntity):
 
     def update(self):
         """Get the latest data and update the state."""
-        self._send('')  # For compatibility with old sound server
+        if self._is_connected is None or self._volume is not None:
+            self._send('')  # For compatibility with old sound server
