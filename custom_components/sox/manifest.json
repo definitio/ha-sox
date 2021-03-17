@@ -4,5 +4,5 @@
   "documentation": "https://github.com/definitio/ha-sox/blob/master/README.md",
   "issue_tracker": "https://github.com/definitio/ha-sox/issues",
   "codeowners": ["@definitio"],
-  "version": "1.1.0"
+  "version": "1.1.1"
 }
