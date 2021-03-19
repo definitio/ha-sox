@@ -8,6 +8,7 @@ from homeassistant.components.media_player import MediaPlayerEntity, PLATFORM_SC
 from homeassistant.components.media_player.const import (
     MEDIA_TYPE_MUSIC,
     MEDIA_TYPE_PLAYLIST,
+    SUPPORT_PLAY,
     SUPPORT_PLAY_MEDIA,
     SUPPORT_STOP,
     SUPPORT_VOLUME_MUTE,
@@ -25,10 +26,12 @@ import homeassistant.helpers.config_validation as cv
 
 _LOGGER = logging.getLogger(__name__)
 
+DOMAIN = "sox"
+
 DEFAULT_NAME = "sox"
 DEFAULT_PORT = 7777
 
-SUPPORT_SOX = SUPPORT_PLAY_MEDIA
+SUPPORT_SOX = SUPPORT_PLAY | SUPPORT_PLAY_MEDIA
 
 PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend(
     {
@@ -41,19 +44,19 @@ PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend(
 
 def setup_platform(hass, config, add_entities, discover_info):
     """Set up the SoX platform."""
-    del hass, discover_info
+    del discover_info
     host = config.get(CONF_HOST)
     port = config.get(CONF_PORT)
     name = config.get(CONF_NAME)
 
-    device = SoXDevice(host, port, name)
+    device = SoXDevice(hass, host, port, name)
     add_entities([device], True)
 
 
 class SoXDevice(MediaPlayerEntity):
     """Representation of a running SoX."""
 
-    def __init__(self, host, port, name):
+    def __init__(self, hass, host, port, name):
         """Initialize the SoX device."""
         self._host = host
         self._port = port
@@ -64,6 +67,12 @@ class SoXDevice(MediaPlayerEntity):
         self._muted = False
         self._muted_volume = None
         self._volume = None
+
+        self.hass = hass
+        hass.data.setdefault(DOMAIN, {})
+        hass.data[DOMAIN][name] = {
+            "media_id": None,
+        }
 
     @property
     def available(self):
@@ -121,6 +130,11 @@ class SoXDevice(MediaPlayerEntity):
         """Set volume of media player."""
         self._volume = round(volume, 2)
 
+    def media_play(self):
+        """Send play command."""
+        _LOGGER.debug("SoX play: %s", self.hass.data[DOMAIN][self._name]["media_id"])
+        self._send(self.hass.data[DOMAIN][self._name]["media_id"])
+
     def media_stop(self):
         """Send stop command."""
         self._send('stop')
@@ -130,6 +144,7 @@ class SoXDevice(MediaPlayerEntity):
         del kwargs
         if media_type in [MEDIA_TYPE_MUSIC, MEDIA_TYPE_PLAYLIST]:
             self._send(media_id)
+            self.hass.data[DOMAIN][self._name]["media_id"] = media_id
         else:
             _LOGGER.error(
                 "Invalid media type %s. Only %s and %s are supported",
