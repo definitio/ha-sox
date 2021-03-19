@@ -9,6 +9,7 @@ from homeassistant.components.media_player.const import (
     MEDIA_TYPE_MUSIC,
     MEDIA_TYPE_PLAYLIST,
     SUPPORT_PLAY_MEDIA,
+    SUPPORT_STOP,
     SUPPORT_VOLUME_MUTE,
     SUPPORT_VOLUME_SET,
     SUPPORT_VOLUME_STEP,
@@ -97,7 +98,12 @@ class SoXDevice(MediaPlayerEntity):
         supported = SUPPORT_SOX
 
         if self._volume is not None:
-            supported |= SUPPORT_VOLUME_SET | SUPPORT_VOLUME_STEP | SUPPORT_VOLUME_MUTE
+            supported |= (
+                SUPPORT_STOP
+                | SUPPORT_VOLUME_SET
+                | SUPPORT_VOLUME_STEP
+                | SUPPORT_VOLUME_MUTE
+            )
 
         return supported
 
@@ -114,6 +120,10 @@ class SoXDevice(MediaPlayerEntity):
     def set_volume_level(self, volume):
         """Set volume of media player."""
         self._volume = round(volume, 2)
+
+    def media_stop(self):
+        """Send stop command."""
+        self._send('stop')
 
     def play_media(self, media_type, media_id, **kwargs):
         """Send the play command."""
