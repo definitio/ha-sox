@@ -2,6 +2,7 @@
   "domain": "sox",
   "name": "SoX",
   "documentation": "https://github.com/definitio/ha-sox/blob/master/README.md",
+  "iot_class": "local_polling",
   "issue_tracker": "https://github.com/definitio/ha-sox/issues",
   "codeowners": ["@definitio"],
   "version": "1.1.2"
