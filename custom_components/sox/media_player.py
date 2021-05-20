@@ -137,7 +137,7 @@ class SoXDevice(MediaPlayerEntity):
 
     def media_stop(self):
         """Send stop command."""
-        self._send('stop')
+        self._send("stop")
 
     def play_media(self, media_type, media_id, **kwargs):
         """Send the play command."""
@@ -159,13 +159,13 @@ class SoXDevice(MediaPlayerEntity):
                 sock.settimeout(5)
                 sock.connect((self._host, self._port))
                 sock.sendall(f"{media_id};{self._volume};".encode())
-                output = sock.recv(256).decode('utf-8').rstrip()
+                output = sock.recv(256).decode("utf-8").rstrip()
                 self._is_connected = True
-                if '=' in output and ';' in output:
-                    output_parsed = dict(x.split('=') for x in output.split(';'))  # type: ignore
-                    if 'volume' in output_parsed.keys():
-                        self._volume = float(output_parsed['volume'])
-                    self._is_playing = output_parsed.get('playing') == 'True' or False
+                if "=" in output and ";" in output:
+                    output_parsed = dict(x.split("=") for x in output.split(";"))  # type: ignore
+                    if "volume" in output_parsed.keys():
+                        self._volume = float(output_parsed["volume"])
+                    self._is_playing = output_parsed.get("playing") == "True" or False
 
         except (socket.error, socket.timeout) as err:
             _LOGGER.debug("SoX connection error: %s", err)
@@ -191,4 +191,4 @@ class SoXDevice(MediaPlayerEntity):
     def update(self):
         """Get the latest data and update the state."""
         if self._is_connected is None or self._volume is not None:
-            self._send('')  # For compatibility with old sound server
+            self._send("")  # For compatibility with old sound server
