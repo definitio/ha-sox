@@ -2,18 +2,17 @@
 import logging
 import socket
 
+import homeassistant.helpers.config_validation as cv
 import voluptuous as vol
-
-from homeassistant.components.media_player import MediaPlayerEntity, PLATFORM_SCHEMA
+from homeassistant.components import media_source
+from homeassistant.components.media_player import PLATFORM_SCHEMA, MediaPlayerEntity
+from homeassistant.components.media_player.browse_media import (
+    async_process_play_media_url,
+)
 from homeassistant.components.media_player.const import (
     MEDIA_TYPE_MUSIC,
     MEDIA_TYPE_PLAYLIST,
-    SUPPORT_PLAY,
-    SUPPORT_PLAY_MEDIA,
-    SUPPORT_STOP,
-    SUPPORT_VOLUME_MUTE,
-    SUPPORT_VOLUME_SET,
-    SUPPORT_VOLUME_STEP,
+    MediaPlayerEntityFeature,
 )
 from homeassistant.const import (
     CONF_HOST,
@@ -22,7 +21,6 @@ from homeassistant.const import (
     STATE_IDLE,
     STATE_PLAYING,
 )
-import homeassistant.helpers.config_validation as cv
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -31,7 +29,9 @@ DOMAIN = "sox"
 DEFAULT_NAME = "sox"
 DEFAULT_PORT = 7777
 
-SUPPORT_SOX = SUPPORT_PLAY | SUPPORT_PLAY_MEDIA
+SUPPORTED_FEATURES_DEFAULT = (
+    MediaPlayerEntityFeature.PLAY | MediaPlayerEntityFeature.PLAY_MEDIA
+)
 
 PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend(
     {
@@ -104,14 +104,14 @@ class SoXDevice(MediaPlayerEntity):
     @property
     def supported_features(self):
         """Flag media player features that are supported."""
-        supported = SUPPORT_SOX
+        supported = SUPPORTED_FEATURES_DEFAULT
 
         if self._volume is not None:
             supported |= (
-                SUPPORT_STOP
-                | SUPPORT_VOLUME_SET
-                | SUPPORT_VOLUME_STEP
-                | SUPPORT_VOLUME_MUTE
+                MediaPlayerEntityFeature.STOP
+                | MediaPlayerEntityFeature.VOLUME_SET
+                | MediaPlayerEntityFeature.VOLUME_STEP
+                | MediaPlayerEntityFeature.VOLUME_MUTE
             )
 
         return supported
@@ -139,9 +139,15 @@ class SoXDevice(MediaPlayerEntity):
         """Send stop command."""
         self._send("stop")
 
-    def play_media(self, media_type, media_id, **kwargs):
+    async def async_play_media(self, media_type, media_id, **kwargs):
         """Send the play command."""
         del kwargs
+
+        if media_source.is_media_source_id(media_id):
+            media_type = MEDIA_TYPE_MUSIC
+            play_item = await media_source.async_resolve_media(self.hass, media_id)
+            media_id = async_process_play_media_url(self.hass, play_item.url)
+
         if media_type in [MEDIA_TYPE_MUSIC, MEDIA_TYPE_PLAYLIST]:
             self._send(media_id)
             self.hass.data[DOMAIN][self._name]["media_id"] = media_id
@@ -188,7 +194,7 @@ class SoXDevice(MediaPlayerEntity):
             if current_volume > 0:
                 self.set_volume_level(max(current_volume - 0.05, 0))
 
-    def update(self):
+    async def async_update(self):
         """Get the latest data and update the state."""
         if self._is_connected is None or self._volume is not None:
             self._send("")  # For compatibility with old sound server
