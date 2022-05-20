@@ -30,7 +30,9 @@ DEFAULT_NAME = "sox"
 DEFAULT_PORT = 7777
 
 SUPPORTED_FEATURES_DEFAULT = (
-    MediaPlayerEntityFeature.PLAY | MediaPlayerEntityFeature.PLAY_MEDIA
+    MediaPlayerEntityFeature.BROWSE_MEDIA
+    | MediaPlayerEntityFeature.PLAY
+    | MediaPlayerEntityFeature.PLAY_MEDIA
 )
 
 PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend(
@@ -138,6 +140,14 @@ class SoXDevice(MediaPlayerEntity):
     def media_stop(self):
         """Send stop command."""
         self._send("stop")
+
+    async def async_browse_media(self, media_content_type, media_content_id):
+        """Implement the websocket media browsing helper."""
+        return await media_source.async_browse_media(
+            self.hass,
+            media_content_id,
+            content_filter=lambda item: item.media_content_type.startswith("audio/"),
+        )
 
     async def async_play_media(self, media_type, media_id, **kwargs):
         """Send the play command."""
