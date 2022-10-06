@@ -5,22 +5,17 @@ import socket
 import homeassistant.helpers.config_validation as cv
 import voluptuous as vol
 from homeassistant.components import media_source
-from homeassistant.components.media_player import PLATFORM_SCHEMA, MediaPlayerEntity
+from homeassistant.components.media_player import (
+    PLATFORM_SCHEMA,
+    MediaPlayerEntity,
+    MediaPlayerEntityFeature,
+    MediaPlayerState,
+    MediaType,
+)
 from homeassistant.components.media_player.browse_media import (
     async_process_play_media_url,
 )
-from homeassistant.components.media_player.const import (
-    MEDIA_TYPE_MUSIC,
-    MEDIA_TYPE_PLAYLIST,
-    MediaPlayerEntityFeature,
-)
-from homeassistant.const import (
-    CONF_HOST,
-    CONF_NAME,
-    CONF_PORT,
-    STATE_IDLE,
-    STATE_PLAYING,
-)
+from homeassistant.const import CONF_HOST, CONF_NAME, CONF_PORT
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -90,8 +85,8 @@ class SoXDevice(MediaPlayerEntity):
     def state(self):
         """Return the media state."""
         if self._is_playing:
-            return STATE_PLAYING
-        return STATE_IDLE
+            return MediaPlayerState.PLAYING
+        return MediaPlayerState.IDLE
 
     @property
     def is_volume_muted(self):
@@ -154,21 +149,21 @@ class SoXDevice(MediaPlayerEntity):
         del kwargs
 
         if media_source.is_media_source_id(media_id):
-            media_type = MEDIA_TYPE_MUSIC
+            media_type = MediaType.MUSIC
             play_item = await media_source.async_resolve_media(
                 self.hass, media_id, self.entity_id
             )
             media_id = async_process_play_media_url(self.hass, play_item.url)
 
-        if media_type in [MEDIA_TYPE_MUSIC, MEDIA_TYPE_PLAYLIST]:
+        if media_type in [MediaType.MUSIC, MediaType.PLAYLIST]:
             self._send(media_id)
             self.hass.data[DOMAIN][self._name]["media_id"] = media_id
         else:
             _LOGGER.error(
                 "Invalid media type %s. Only %s and %s are supported",
                 media_type,
-                MEDIA_TYPE_MUSIC,
-                MEDIA_TYPE_PLAYLIST,
+                MediaType.MUSIC,
+                MediaType.PLAYLIST,
             )
 
     def _send(self, media_id):
