@@ -58,6 +58,7 @@ class SoXDevice(MediaPlayerEntity):
         self._host = host
         self._port = port
         self._name = name
+        self._attr_unique_id = name
 
         self._is_connected = None
         self._is_playing = False
