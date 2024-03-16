@@ -219,4 +219,7 @@ class SoXDevice(MediaPlayerEntity):
     async def async_update(self):
         """Get the latest data and update the state."""
         if not self._is_connected or self._volume is not None:
-            await self._async_send("")  # For compatibility with old sound server
+            try:
+                await self._async_send("")  # For compatibility with old sound server
+            except:
+                pass
