@@ -173,7 +173,7 @@ class SoXDevice(MediaPlayerEntity):
 
     async def _async_send(self, media_id):
         try:
-            reader, writer = await asyncio.open_connection(self._host, self._port)
+            reader, writer = await asyncio.wait_for(asyncio.open_connection(self._host, self._port), timeout=5)
             # Set a timeout for operations
             writer.write(f"{media_id};{self._volume};".encode())
             await writer.drain()
@@ -192,8 +192,9 @@ class SoXDevice(MediaPlayerEntity):
             _LOGGER.debug("Async SoX connection error: %s", err)
             self._is_connected = False
         finally:
-            writer.close()
-            await writer.wait_closed()
+            if writer:
+                writer.close()
+                await writer.wait_closed()
 
     async def async_volume_up(self):
         """Service to send the MPD the command for volume up."""
