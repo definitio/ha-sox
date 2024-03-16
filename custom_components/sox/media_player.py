@@ -194,6 +194,7 @@ class SoXDevice(MediaPlayerEntity):
         except (asyncio.TimeoutError, OSError) as err:
             _LOGGER.debug("Async SoX connection error: %s", err)
             self._is_connected = False
+            raise err
         finally:
             if writer:
                 writer.close()
@@ -217,5 +218,5 @@ class SoXDevice(MediaPlayerEntity):
 
     async def async_update(self):
         """Get the latest data and update the state."""
-        if self._is_connected is None or self._volume is not None:
+        if not self._is_connected or self._volume is not None:
             await self._async_send("")  # For compatibility with old sound server
