@@ -172,6 +172,7 @@ class SoXDevice(MediaPlayerEntity):
             )
 
     async def _async_send(self, media_id):
+        reader, writer = (None, None)
         try:
             reader, writer = await asyncio.wait_for(
                 asyncio.open_connection(self._host, self._port), timeout=5
