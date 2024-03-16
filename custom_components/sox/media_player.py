@@ -1,6 +1,7 @@
 """Support for interacting with the SoX music player."""
+
 import logging
-import socket
+import asyncio
 
 import homeassistant.helpers.config_validation as cv
 import voluptuous as vol
@@ -114,28 +115,31 @@ class SoXDevice(MediaPlayerEntity):
 
         return supported
 
-    def mute_volume(self, mute):
+    async def async_mute_volume(self, mute):
         """Mute. Emulated with set_volume_level."""
         if self.volume_level is not None and mute != self._muted:
             if mute:
                 self._muted_volume = self.volume_level
-                self.set_volume_level(0)
+                await self.async_set_volume_level(0)
             elif self._muted_volume is not None:
-                self.set_volume_level(self._muted_volume)
+                await self.async_set_volume_level(self._muted_volume)
             self._muted = mute
 
-    def set_volume_level(self, volume):
+    async def async_set_volume_level(self, volume):
         """Set volume of media player."""
         self._volume = round(volume, 2)
+        if self._is_playing:
+            await self.async_media_stop()
+            await self.async_media_play()
 
-    def media_play(self):
+    async def async_media_play(self):
         """Send play command."""
         _LOGGER.debug("SoX play: %s", self.hass.data[DOMAIN][self._name]["media_id"])
-        self._send(self.hass.data[DOMAIN][self._name]["media_id"])
+        await self._async_send(self.hass.data[DOMAIN][self._name]["media_id"])
 
-    def media_stop(self):
+    async def async_media_stop(self):
         """Send stop command."""
-        self._send("stop")
+        await self._async_send("stop")
 
     async def async_browse_media(self, media_content_type, media_content_id):
         """Implement the websocket media browsing helper."""
@@ -157,7 +161,7 @@ class SoXDevice(MediaPlayerEntity):
             media_id = async_process_play_media_url(self.hass, play_item.url)
 
         if media_type in [MediaType.MUSIC, MediaType.PLAYLIST]:
-            self._send(media_id)
+            await self._async_send(media_id)
             self.hass.data[DOMAIN][self._name]["media_id"] = media_id
         else:
             _LOGGER.error(
@@ -167,42 +171,55 @@ class SoXDevice(MediaPlayerEntity):
                 MediaType.PLAYLIST,
             )
 
-    def _send(self, media_id):
+    async def _async_send(self, media_id):
+        reader, writer = (None, None)
         try:
-            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
-                sock.settimeout(5)
-                sock.connect((self._host, self._port))
-                sock.sendall(f"{media_id};{self._volume};".encode())
-                output = sock.recv(256).decode("utf-8").rstrip()
-                self._is_connected = True
-                if "=" in output and ";" in output:
-                    output_parsed = dict(x.split("=") for x in output.split(";"))  # type: ignore
-                    if "volume" in output_parsed.keys():
-                        self._volume = float(output_parsed["volume"])
-                    self._is_playing = output_parsed.get("playing") == "True" or False
+            reader, writer = await asyncio.wait_for(
+                asyncio.open_connection(self._host, self._port), timeout=5
+            )
+            # Set a timeout for operations
+            writer.write(f"{media_id};{self._volume};".encode())
+            await writer.drain()
+            # Try to receive data with a timeout
+            data = await asyncio.wait_for(reader.read(256), timeout=5)
+            output = data.decode("utf-8").rstrip()
+            self._is_connected = True
 
-        except (socket.error, socket.timeout) as err:
-            _LOGGER.debug("SoX connection error: %s", err)
-            if self._volume is not None:  # For compatibility with old sound server
-                self._is_connected = False
+            if "=" in output and ";" in output:
+                output_parsed = dict(x.split("=") for x in output.split(";"))
+                if "volume" in output_parsed.keys():
+                    self._volume = float(output_parsed["volume"])
+                self._is_playing = output_parsed.get("playing") == "True" or False
 
-    def volume_up(self):
+        except (asyncio.TimeoutError, OSError) as err:
+            _LOGGER.debug("Async SoX connection error: %s", err)
+            self._is_connected = False
+            raise err
+        finally:
+            if writer:
+                writer.close()
+                await writer.wait_closed()
+
+    async def async_volume_up(self):
         """Service to send the MPD the command for volume up."""
         if self.volume_level is not None:
             current_volume = self.volume_level
 
             if current_volume < 1:
-                self.set_volume_level(min(current_volume + 0.05, 1))
+                await self.async_set_volume_level(min(current_volume + 0.05, 1))
 
-    def volume_down(self):
+    async def async_volume_down(self):
         """Service to send the MPD the command for volume down."""
         if self.volume_level is not None:
             current_volume = self.volume_level
 
             if current_volume > 0:
-                self.set_volume_level(max(current_volume - 0.05, 0))
+                await self.async_set_volume_level(max(current_volume - 0.05, 0))
 
     async def async_update(self):
         """Get the latest data and update the state."""
-        if self._is_connected is None or self._volume is not None:
-            self._send("")  # For compatibility with old sound server
+        if not self._is_connected or self._volume is not None:
+            try:
+                await self._async_send("")  # For compatibility with old sound server
+            except:
+                pass
