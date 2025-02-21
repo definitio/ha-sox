@@ -1,0 +1,22 @@
+{
+  "config": {
+    "abort": {
+      "already_configured": "This device had already been configured!"
+    },
+    "error": {
+      "cannot_connect": "Cannot retrieve data from remote server",
+      "unknown_error": "Unknown error (see logs for details)"
+    },
+    "step": {
+      "user": {
+        "data": {
+          "host": "Host",
+          "port": "Port",
+          "name": "Name"
+        },
+        "description": "Specify the host (IP address or domain name) and port (unless default) of your SoX server.\n\nSpecifying a custom name is optional.",
+        "title": "Connect to SoX server"
+      }
+    }
+  }
+}
