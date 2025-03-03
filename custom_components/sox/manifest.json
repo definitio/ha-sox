@@ -6,5 +6,5 @@
   "documentation": "https://github.com/definitio/ha-sox/blob/master/README.md",
   "iot_class": "local_polling",
   "issue_tracker": "https://github.com/definitio/ha-sox/issues",
-  "version": "1.2.4"
+  "version": "1.2.5"
 }
